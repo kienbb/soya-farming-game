@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Soya Farming - VinaSoy</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="game-container">
+        <div id="header">
+            <div class="score-container">
+                <span class="bean-emoji">🌱</span>
+                <span id="score">0</span>
+            </div>
+            <div class="moves-container">
+                Lượt chơi: <span id="moves">20</span>
+            </div>
+        </div>
+
+        <div id="game-board"></div>
+
+        <div class="controls">
+            <button id="share-btn" class="btn">Chia sẻ để nhận thêm lượt</button>
+        </div>
+
+        <!-- Modal cho đăng ký -->
+        <div id="register-modal" class="modal">
+            <div class="modal-content">
+                <h2>Đăng ký tham gia</h2>
+                <form id="register-form">
+                    <input type="text" placeholder="Tên của bạn" required>
+                    <input type="tel" placeholder="Số điện thoại" required>
+                    <button type="submit" class="btn">Bắt đầu chơi</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal thông báo kết hợp thành công -->
+        <div id="success-modal" class="modal">
+            <div class="modal-content">
+                <h3>Tuyệt vời!</h3>
+                <p>Bạn đã kết hợp thành công!</p>
+                <div class="reward-info"></div>
+            </div>
+        </div>
+    </div>
+    <script src="game.js"></script>
+</body>
+</html>
