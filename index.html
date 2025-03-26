@@ -2,27 +2,73 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4CAF50">
+    <meta name="description" content="Kết hợp các thành phần để tạo ra Sữa đậu Fami">
     <title>Soya Farming - VinaSoy</title>
-    <base href="/soya-farming-game/">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
 </head>
 <body>
     <div class="game-container">
         <div id="header">
             <div class="score-container">
-                <span class="bean-emoji">🌱</span>
-                <span id="score">0</span>
+                <div class="score-item">
+                    <span class="fami-emoji">🥛</span>
+                    <span id="fami-count">0</span> Fami
+                </div>
+                <div class="score-item">
+                    <span class="bean-emoji">🌟</span>
+                    <span id="bean-count">0</span> Đậu vàng
+                </div>
             </div>
             <div class="moves-container">
-                Lượt chơi: <span id="moves">20</span>
+                Lượt chơi: <span id="moves">30</span>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>Hướng dẫn kết hợp</h3>
+            <div class="recipes">
+                <div class="recipe">
+                    <span>3 x 💧</span>
+                    <span class="equals">=</span>
+                    <span>🌱</span>
+                    <span class="desc">(Omega 3 → Béo Tốt)</span>
+                </div>
+                <div class="recipe">
+                    <span>3 x 🔮</span>
+                    <span class="equals">=</span>
+                    <span>🍃</span>
+                    <span class="desc">(ASAM → Đạm Tốt)</span>
+                </div>
+                <div class="recipe">
+                    <span>3 x 🌿</span>
+                    <span class="equals">=</span>
+                    <span>🍂</span>
+                    <span class="desc">(Xơ → Xơ Tốt)</span>
+                </div>
+                <div class="recipe special">
+                    <span>🌱 + 🍃 + 🍂</span>
+                    <span class="equals">=</span>
+                    <span>🥛</span>
+                    <span class="desc">(Béo Tốt + Đạm Tốt + Xơ Tốt = Fami)</span>
+                </div>
+                <div class="exchange">
+                    <span>🥛</span>
+                    <span class="equals">→</span>
+                    <span>🌟</span>
+                    <span class="desc">(Đổi Fami lấy Đậu vàng)</span>
+                </div>
             </div>
         </div>
 
         <div id="game-board"></div>
 
         <div class="controls">
-            <button id="share-btn" class="btn">Chia sẻ để nhận thêm lượt</button>
+            <button id="share-btn" class="btn primary">Chia sẻ để nhận thêm lượt</button>
+            <button id="exchange-btn" class="btn secondary">Đổi Fami lấy Đậu vàng</button>
         </div>
 
         <!-- Modal cho đăng ký -->
@@ -46,6 +92,21 @@
             </div>
         </div>
     </div>
+    <script src="confetti.js"></script>
     <script src="game.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registered:', registration);
+                    })
+                    .catch(error => {
+                        console.log('ServiceWorker registration failed:', error);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>
