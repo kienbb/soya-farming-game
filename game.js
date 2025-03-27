@@ -130,12 +130,12 @@ class SoyaFarming {
             specialTypes['dam-tot'].length > 0 && 
             specialTypes['xo-tot'].length > 0) {
             
-            // Kiểm tra xem các ô special có liền kề nhau không
+            // Kiểm tra xem các ô special có liền kề nhau không (bao gồm đường chéo)
             for (let beo of specialTypes['beo-tot']) {
                 for (let dam of specialTypes['dam-tot']) {
                     if (this.isAdjacent(beo.row, beo.col, dam.row, dam.col)) {
                         for (let xo of specialTypes['xo-tot']) {
-                            if (this.isAdjacent(dam.row, dam.col, xo.row, xo.col) ||
+                            if (this.isAdjacent(dam.row, dam.col, xo.row, xo.col) || 
                                 this.isAdjacent(beo.row, beo.col, xo.row, xo.col)) {
                                 return true;
                             }
@@ -146,6 +146,29 @@ class SoyaFarming {
         }
         
         return false;
+    }
+
+    getAdjacentCells(row, col) {
+        const adjacent = [];
+        
+        // Duyệt qua tất cả các ô xung quanh, bao gồm cả đường chéo
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                // Bỏ qua ô hiện tại
+                if (i === 0 && j === 0) continue;
+                
+                const newRow = row + i;
+                const newCol = col + j;
+                
+                // Kiểm tra ô mới có nằm trong bàn chơi không
+                if (newRow >= 0 && newRow < this.boardRows && 
+                    newCol >= 0 && newCol < this.boardCols) {
+                    adjacent.push({row: newRow, col: newCol});
+                }
+            }
+        }
+        
+        return adjacent;
     }
 
     findBasicTypeMatches() {
@@ -183,13 +206,43 @@ class SoyaFarming {
             }
         }
         
-        // Kiểm tra 3 ô liên kết (không nhất thiết phải thẳng hàng)
+        // Kiểm tra theo đường chéo chính (từ trên trái xuống dưới phải)
+        for (let i = 0; i < this.boardRows - 2; i++) {
+            for (let j = 0; j < this.boardCols - 2; j++) {
+                if (this.board[i][j] === this.board[i+1][j+1] && 
+                    this.board[i][j] === this.board[i+2][j+2] &&
+                    this.types.basic.includes(this.board[i][j])) {
+                    matches.push([
+                        {row: i, col: j},
+                        {row: i+1, col: j+1},
+                        {row: i+2, col: j+2}
+                    ]);
+                }
+            }
+        }
+        
+        // Kiểm tra theo đường chéo phụ (từ trên phải xuống dưới trái)
+        for (let i = 0; i < this.boardRows - 2; i++) {
+            for (let j = 2; j < this.boardCols; j++) {
+                if (this.board[i][j] === this.board[i+1][j-1] && 
+                    this.board[i][j] === this.board[i+2][j-2] &&
+                    this.types.basic.includes(this.board[i][j])) {
+                    matches.push([
+                        {row: i, col: j},
+                        {row: i+1, col: j-1},
+                        {row: i+2, col: j-2}
+                    ]);
+                }
+            }
+        }
+        
+        // Kiểm tra 3 ô liên kết (không nhất thiết phải thẳng hàng) - giữ lại phần này
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
                 const type = this.board[i][j];
                 if (!this.types.basic.includes(type)) continue;
                 
-                // Tìm tất cả các ô liền kề
+                // Tìm tất cả các ô liền kề, bao gồm cả đường chéo
                 const neighbors = this.getAdjacentCells(i, j);
                 
                 // Lọc ra các ô có cùng loại
@@ -220,24 +273,6 @@ class SoyaFarming {
         return matches;
     }
 
-    getAdjacentCells(row, col) {
-        const adjacent = [];
-        
-        // Ô bên trên
-        if (row > 0) adjacent.push({row: row-1, col});
-        
-        // Ô bên dưới
-        if (row < this.boardRows - 1) adjacent.push({row: row+1, col});
-        
-        // Ô bên trái
-        if (col > 0) adjacent.push({row, col: col-1});
-        
-        // Ô bên phải
-        if (col < this.boardCols - 1) adjacent.push({row, col: col+1});
-        
-        return adjacent;
-    }
-
     findSpecialTypeMatches() {
         const matches = [];
         const specialTypes = {
@@ -256,14 +291,15 @@ class SoyaFarming {
             }
         }
         
-        // Kiểm tra xem các ô special có liền kề nhau không
+        // Kiểm tra xem các ô special có liền kề nhau không (bao gồm đường chéo)
         for (let beo of specialTypes['beo-tot']) {
             for (let dam of specialTypes['dam-tot']) {
+                // Kiểm tra xem beo-tot và dam-tot có liền kề nhau không (bao gồm đường chéo)
                 if (this.isAdjacent(beo.row, beo.col, dam.row, dam.col)) {
                     for (let xo of specialTypes['xo-tot']) {
-                        if (this.isAdjacent(dam.row, dam.col, xo.row, xo.col)) {
-                            matches.push([beo, dam, xo]);
-                        } else if (this.isAdjacent(beo.row, beo.col, xo.row, xo.col)) {
+                        // Kiểm tra xem xo-tot có liền kề với beo-tot hoặc dam-tot không
+                        if (this.isAdjacent(dam.row, dam.col, xo.row, xo.col) || 
+                            this.isAdjacent(beo.row, beo.col, xo.row, xo.col)) {
                             matches.push([beo, dam, xo]);
                         }
                     }
@@ -526,7 +562,9 @@ class SoyaFarming {
     isAdjacent(row1, col1, row2, col2) {
         const rowDiff = Math.abs(row1 - row2);
         const colDiff = Math.abs(col1 - col2);
-        return (rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1);
+        
+        // Cho phép kết hợp theo cả đường chéo (rowDiff = 1 && colDiff = 1)
+        return (rowDiff <= 1 && colDiff <= 1 && !(rowDiff === 0 && colDiff === 0));
     }
 
     checkMatch() {
@@ -885,27 +923,26 @@ class SoyaFarming {
             const randomMatchIndex = Math.floor(Math.random() * validMatches.length);
             const match = validMatches[randomMatchIndex];
             
-            // Highlight các ô
-            match.forEach(cell => {
-                const cellElement = document.querySelector(`[data-row="${cell.row}"][data-col="${cell.col}"]`);
-                if (cellElement) {
-                    cellElement.classList.add('highlight');
-                    this.hintCells.push(cellElement);
-                }
-            });
-            
-            // Flash các ô được highlight để làm nổi bật
-            const flashCells = () => {
-                this.hintCells.forEach(cell => {
-                    cell.classList.toggle('flash-highlight');
-                });
-            };
-            
-            // Flash 3 lần để thu hút sự chú ý
-            flashCells();
-            setTimeout(flashCells, 300);
-            setTimeout(flashCells, 600);
-            setTimeout(flashCells, 900);
+            // Chỉ highlight ô đầu tiên trong phương án
+            const cellToHighlight = match[0];
+            const cellElement = document.querySelector(`[data-row="${cellToHighlight.row}"][data-col="${cellToHighlight.col}"]`);
+            if (cellElement) {
+                cellElement.classList.add('highlight');
+                this.hintCells.push(cellElement);
+                
+                // Flash ô được highlight để làm nổi bật
+                const flashCells = () => {
+                    this.hintCells.forEach(cell => {
+                        cell.classList.toggle('flash-highlight');
+                    });
+                };
+                
+                // Flash 3 lần để thu hút sự chú ý
+                flashCells();
+                setTimeout(flashCells, 300);
+                setTimeout(flashCells, 600);
+                setTimeout(flashCells, 900);
+            }
             
             if (this.hintBtn) {
                 this.hintBtn.classList.add('active');
