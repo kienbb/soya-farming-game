@@ -426,8 +426,6 @@ class SoyaFarming {
                 if (this.exchangeFamiForBean()) {
                     this.showSuccessModal('exchange');
                     createConfetti();
-                } else {
-                    alert('Bạn cần có ít nhất 1 Sữa đậu Fami để đổi lấy Hạt đậu vàng!');
                 }
                 
                 this.lastInteractionTime = Date.now();
@@ -466,26 +464,31 @@ class SoyaFarming {
         const type = this.board[row][col];
         const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
         
-        if (!cell || this.selectedCells.some(c => c.row === row && c.col === col)) {
+        if (!cell) return;
+        
+        // Nếu ô đã được chọn rồi, bỏ chọn nó
+        if (this.selectedCells.some(c => c.row === row && c.col === col)) {
+            // Bỏ chọn ô hiện tại
+            cell.classList.remove('selected');
+            // Xóa ô khỏi danh sách đã chọn
+            this.selectedCells = this.selectedCells.filter(c => !(c.row === row && c.col === col));
             return;
         }
-
-        if (this.selectedCells.length === 0) {
+        
+        // Nếu đã chọn đủ 3 ô, không cho chọn thêm
+        if (this.selectedCells.length >= 3) return;
+        
+        // Nếu chưa chọn ô nào hoặc ô mới liền kề với ít nhất một ô đã chọn
+        if (this.selectedCells.length === 0 || 
+            this.selectedCells.some(c => this.isAdjacent(c.row, c.col, row, col))) {
+            
             this.selectedCells.push({row, col, type});
             cell.classList.add('selected');
-        } else {
-            const lastCell = this.selectedCells[this.selectedCells.length - 1];
             
-            if (this.isAdjacent(lastCell.row, lastCell.col, row, col)) {
-                this.selectedCells.push({row, col, type});
-                cell.classList.add('selected');
-
-                if (this.selectedCells.length === 3) {
-                    document.querySelectorAll('.confetti').forEach(c => c.remove());
-                    this.checkMatch();
-                }
-            } else {
-                this.clearSelection();
+            // Nếu đã chọn đủ 3 ô, kiểm tra kết hợp
+            if (this.selectedCells.length === 3) {
+                document.querySelectorAll('.confetti').forEach(c => c.remove());
+                this.checkMatch();
             }
         }
     }
@@ -510,51 +513,60 @@ class SoyaFarming {
         const allSameType = types.every(type => type === types[0]);
         const isBasicType = this.types.basic.includes(types[0]);
         const allSpecialType = types.every(type => this.types.special.includes(type));
-        const hasAllSpecialTypes = ['beo-tot', 'dam-tot', 'xo-tot'].every(type => 
-            types.includes(type)
+        
+        // Kiểm tra xem có phải là tất cả các loại đặc biệt khác nhau
+        const hasAllSpecialTypes = ['beo-tot', 'dam-tot', 'xo-tot'].every(specialType => 
+            types.includes(specialType)
         );
-
+        
+        // Kiểm tra xem tất cả các ô có liền kề nhau không
+        const allAdjacent = this.areAllCellsAdjacent(this.selectedCells);
+        
         setTimeout(() => {
-            if ((allSameType && isBasicType) || (allSpecialType && hasAllSpecialTypes)) {
+            // Chỉ trừ lượt khi kết hợp thành công
+            if ((allSameType && isBasicType && allAdjacent) || 
+                (allSpecialType && hasAllSpecialTypes && allAdjacent)) {
                 this.moves--;
             }
             
-            if (allSameType && isBasicType) {
+            if (allSameType && isBasicType && allAdjacent) {
+                // Lấy ô đầu tiên người dùng chọn là ô kết quả
+                const firstCell = this.selectedCells[0];
                 let upgradedType;
+                
                 switch(types[0]) {
                     case 'omega3': upgradedType = 'beo-tot'; break;
                     case 'asam': upgradedType = 'dam-tot'; break;
                     case 'xo': upgradedType = 'xo-tot'; break;
                 }
                 
-                this.board[this.selectedCells[0].row][this.selectedCells[0].col] = upgradedType;
+                this.board[firstCell.row][firstCell.col] = upgradedType;
+                
+                // Các ô còn lại sẽ được thay thế bằng loại ngẫu nhiên
                 this.selectedCells.slice(1).forEach(cell => {
                     this.board[cell.row][cell.col] = this.getRandomType();
                 });
                 
-                this.showSuccessModal('upgrade', upgradedType);
                 this.renderBoard();
                 this.isAnimating = false;
                 
                 // Kiểm tra nếu không còn nước đi hợp lệ
                 this.checkAndHandleNoValidMoves();
-            } else if (allSpecialType && hasAllSpecialTypes) {
-                // Save selected cells positions before any potential clearing
-                const firstCellRow = this.selectedCells[0].row;
-                const firstCellCol = this.selectedCells[0].col;
-                const otherCells = this.selectedCells.slice(1).map(cell => ({row: cell.row, col: cell.col}));
+            } else if (allSpecialType && hasAllSpecialTypes && allAdjacent) {
+                // Lấy ô đầu tiên người dùng chọn là ô kết quả
+                const firstCell = this.selectedCells[0];
                 
                 // Create temporary Fami for animation
-                this.board[firstCellRow][firstCellCol] = 'fami';
+                this.board[firstCell.row][firstCell.col] = 'fami';
                 
-                // Kích hoạt hiệu ứng confetti mạnh hơn và rõ ràng hơn
+                // Kích hoạt hiệu ứng confetti mạnh hơn
                 createConfetti();
                 setTimeout(() => createConfetti(), 300);
                 setTimeout(() => createConfetti(), 600);
                 
-                // Thêm hiệu ứng đặc biệt cho các ô khác
+                // Thêm hiệu ứng đặc biệt cho ô Fami
                 this.renderBoard();
-                const famiCell = document.querySelector(`[data-row="${firstCellRow}"][data-col="${firstCellCol}"]`);
+                const famiCell = document.querySelector(`[data-row="${firstCell.row}"][data-col="${firstCell.col}"]`);
                 if (famiCell) {
                     famiCell.classList.add('super-match');
                     famiCell.style.zIndex = "10";
@@ -562,7 +574,7 @@ class SoyaFarming {
                 
                 // Animate Fami appearance and disappearance
                 setTimeout(() => {
-                    const famiCellContent = document.querySelector(`[data-row="${firstCellRow}"][data-col="${firstCellCol}"] .cell-content`);
+                    const famiCellContent = document.querySelector(`[data-row="${firstCell.row}"][data-col="${firstCell.col}"] .cell-content`);
                     if (famiCellContent) {
                         famiCellContent.classList.add('fami-disappearing');
                         
@@ -575,24 +587,23 @@ class SoyaFarming {
                     setTimeout(() => {
                         this.famiCount++;
                         // Replace Fami with random basic type
-                        this.board[firstCellRow][firstCellCol] = this.getRandomType();
-                        otherCells.forEach(cell => {
+                        this.board[firstCell.row][firstCell.col] = this.getRandomType();
+                        
+                        // Các ô còn lại sẽ được thay thế bằng loại ngẫu nhiên
+                        this.selectedCells.slice(1).forEach(cell => {
                             this.board[cell.row][cell.col] = this.getRandomType();
                         });
+                        
                         this.renderBoard();
                         this.updateUI();
                         this.isAnimating = false;
 
                         // Kiểm tra nếu không còn nước đi hợp lệ
                         this.checkAndHandleNoValidMoves();
-                    }, 2000); // Kéo dài thời gian hiển thị Fami 
+                    }, 2000);
                 }, 1000);
-                
-                this.showSuccessModal('fami');
-                this.clearSelection();
             } else {
-                // Không hiển thị alert mà chỉ dùng modal
-                this.showSuccessModal('invalid');
+                // Kết hợp không hợp lệ
                 this.isAnimating = false;
                 this.clearSelection();
                 return;
@@ -605,6 +616,43 @@ class SoyaFarming {
                 this.handleGameOver();
             }
         }, 300);
+    }
+    
+    // Thêm phương thức mới để kiểm tra xem tất cả các ô có liền kề nhau không
+    areAllCellsAdjacent(cells) {
+        if (cells.length <= 1) return true;
+        
+        // Tạo một bản đồ các ô liền kề nhau
+        const graph = {};
+        
+        for (let i = 0; i < cells.length; i++) {
+            const key = `${cells[i].row},${cells[i].col}`;
+            graph[key] = [];
+            
+            for (let j = 0; j < cells.length; j++) {
+                if (i !== j && this.isAdjacent(cells[i].row, cells[i].col, cells[j].row, cells[j].col)) {
+                    graph[key].push(`${cells[j].row},${cells[j].col}`);
+                }
+            }
+        }
+        
+        // Kiểm tra tính kết nối bằng BFS
+        const visited = new Set();
+        const queue = [`${cells[0].row},${cells[0].col}`];
+        visited.add(queue[0]);
+        
+        while (queue.length > 0) {
+            const current = queue.shift();
+            for (const neighbor of graph[current] || []) {
+                if (!visited.has(neighbor)) {
+                    visited.add(neighbor);
+                    queue.push(neighbor);
+                }
+            }
+        }
+        
+        // Nếu tất cả các ô đều được thăm, chúng có liên kết với nhau
+        return visited.size === cells.length;
     }
 
     clearSelection() {
@@ -623,9 +671,7 @@ class SoyaFarming {
             this.shareCount++;
             this.moves++;
             this.updateUI();
-            alert('Chia sẻ thành công! Bạn nhận được thêm 1 lượt chơi.');
         } else {
-            alert('Bạn đã đạt giới hạn chia sẻ trong ngày hôm nay.');
         }
     }
 
@@ -683,6 +729,10 @@ class SoyaFarming {
     }
 
     showSuccessModal(type, upgradedType = '') {
+        // Bỏ qua hiển thị modal để loại bỏ hẳn popup
+        return;
+        
+        /* Code hiển thị modal đã bị vô hiệu hóa
         if (!this.successModal) return;
         
         const titleElem = this.successModal.querySelector('h3');
@@ -731,6 +781,7 @@ class SoyaFarming {
         setTimeout(() => {
             this.successModal.style.display = 'none';
         }, 2000);
+        */
     }
 
     updateExchangeButton() {
