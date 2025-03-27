@@ -31,6 +31,7 @@ You can try the game at: https://kienbb.github.io/soya-farming-game/
 - HTML5, CSS3, JavaScript
 - Progressive Web App (PWA) support
 - Mobile-friendly design
+- Zalo mini app ready
 
 ## License
 
