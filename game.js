@@ -586,7 +586,22 @@ class SoyaFarming {
                 // Lấy ô đầu tiên người dùng chọn là ô kết quả
                 const firstCell = this.selectedCells[0];
                 
-                // Create temporary Fami for animation
+                // Lưu lại các ô khác để thay thế sau
+                const otherCells = this.selectedCells.slice(1).map(cell => ({
+                    row: cell.row,
+                    col: cell.col
+                }));
+                
+                // Cập nhật trạng thái bàn chơi ngay lập tức để tránh lỗi
+                // Xóa tất cả các ô đã chọn khỏi bàn chơi trước
+                this.selectedCells.forEach(cell => {
+                    if (cell !== firstCell) {
+                        // Các ô khác sẽ được thay thế bằng loại cơ bản ngẫu nhiên
+                        this.board[cell.row][cell.col] = this.getRandomType();
+                    }
+                });
+                
+                // Đặt Fami vào ô đầu tiên để hiển thị hiệu ứng
                 this.board[firstCell.row][firstCell.col] = 'fami';
                 
                 // Kích hoạt hiệu ứng confetti mạnh hơn
@@ -594,8 +609,10 @@ class SoyaFarming {
                 setTimeout(() => createConfetti(), 300);
                 setTimeout(() => createConfetti(), 600);
                 
-                // Thêm hiệu ứng đặc biệt cho ô Fami
+                // Render lại bàn chơi để thấy sự thay đổi
                 this.renderBoard();
+                
+                // Thêm hiệu ứng đặc biệt cho ô Fami
                 const famiCell = document.querySelector(`[data-row="${firstCell.row}"][data-col="${firstCell.col}"]`);
                 if (famiCell) {
                     famiCell.classList.add('super-match');
@@ -621,11 +638,6 @@ class SoyaFarming {
                         this.famiCount++;
                         // Replace Fami with random basic type
                         this.board[firstCell.row][firstCell.col] = this.getRandomType();
-                        
-                        // Các ô còn lại sẽ được thay thế bằng loại ngẫu nhiên
-                        this.selectedCells.slice(1).forEach(cell => {
-                            this.board[cell.row][cell.col] = this.getRandomType();
-                        });
                         
                         this.renderBoard();
                         this.updateUI();
