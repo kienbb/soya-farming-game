@@ -278,24 +278,40 @@ class SoyaFarming {
         // Lưu lại trạng thái trước khi tráo
         const oldBoard = JSON.parse(JSON.stringify(this.board));
         
-        const allCells = [];
+        // Tách các ô thường và ô đặc biệt
+        const basicCells = [];
+        const specialPositions = [];
+        
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
-                allCells.push(this.board[i][j]);
+                const cellType = this.board[i][j];
+                if (this.types.special.includes(cellType) || cellType === 'fami') {
+                    // Lưu vị trí của các ô đặc biệt
+                    specialPositions.push({row: i, col: j, type: cellType});
+                } else {
+                    // Chỉ tráo các ô thường
+                    basicCells.push(cellType);
+                }
             }
         }
         
-        // Tráo ngẫu nhiên
-        for (let i = allCells.length - 1; i > 0; i--) {
+        // Tráo ngẫu nhiên các ô thường
+        for (let i = basicCells.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
+            [basicCells[i], basicCells[j]] = [basicCells[j], basicCells[i]];
         }
         
         // Đặt lại vào bàn chơi
-        let index = 0;
+        let basicIndex = 0;
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
-                this.board[i][j] = allCells[index++];
+                // Kiểm tra xem vị trí hiện tại có phải ô đặc biệt không
+                const specialCell = specialPositions.find(pos => pos.row === i && pos.col === j);
+                if (specialCell) {
+                    this.board[i][j] = specialCell.type;
+                } else {
+                    this.board[i][j] = basicCells[basicIndex++];
+                }
             }
         }
         
@@ -307,7 +323,15 @@ class SoyaFarming {
         
         // Đảm bảo không tráo trùng lặp
         if (JSON.stringify(this.board) === JSON.stringify(oldBoard)) {
-            this.shuffleBoard(); // Tráo lại nếu bàn chơi không thay đổi
+            // Nếu bàn chơi không thay đổi, thay đổi một số ô ngẫu nhiên
+            for (let i = 0; i < 3; i++) {
+                const row = Math.floor(Math.random() * this.boardRows);
+                const col = Math.floor(Math.random() * this.boardCols);
+                // Chỉ thay đổi nếu không phải ô đặc biệt
+                if (!this.types.special.includes(this.board[row][col]) && this.board[row][col] !== 'fami') {
+                    this.board[row][col] = this.getRandomType();
+                }
+            }
         }
     }
 
@@ -341,6 +365,12 @@ class SoyaFarming {
                 cell.dataset.row = i;
                 cell.dataset.col = j;
                 cell.dataset.type = this.board[i][j];
+                
+                // Thêm class riêng cho các ô đặc biệt (chỉ thay đổi nền không thay đổi viền)
+                if (this.types.special.includes(this.board[i][j])) {
+                    cell.classList.add('special-cell');
+                    cell.classList.add(`special-${this.board[i][j]}`);
+                }
                 
                 const content = document.createElement('div');
                 content.className = 'cell-content';
@@ -582,6 +612,9 @@ class SoyaFarming {
                         const light = document.createElement('div');
                         light.className = 'fami-light';
                         famiCell.appendChild(light);
+                        
+                        // Tạo hộp Fami bay đến vị trí điểm số
+                        this.createFlyingFami(famiCell);
                     }
                     
                     setTimeout(() => {
@@ -669,9 +702,11 @@ class SoyaFarming {
         
         if (this.shareCount < this.maxSharesPerDay) {
             this.shareCount++;
-            this.moves++;
+            this.moves += 10; // Tăng số lượt chơi lên 10 khi chia sẻ
             this.updateUI();
+            this.showSuccessModal('share');
         } else {
+            this.showSuccessModal('share-limit');
         }
     }
 
@@ -729,10 +764,11 @@ class SoyaFarming {
     }
 
     showSuccessModal(type, upgradedType = '') {
-        // Bỏ qua hiển thị modal để loại bỏ hẳn popup
-        return;
+        // Chỉ hiển thị popup cho một số trường hợp cụ thể
+        if (type !== 'share' && type !== 'share-limit' && type !== 'exchange') {
+            return;
+        }
         
-        /* Code hiển thị modal đã bị vô hiệu hóa
         if (!this.successModal) return;
         
         const titleElem = this.successModal.querySelector('h3');
@@ -742,46 +778,32 @@ class SoyaFarming {
         if (!rewardInfo || !titleElem || !messageElem) return;
         
         switch(type) {
-            case 'upgrade':
-                titleElem.textContent = 'Tuyệt vời!';
-                messageElem.textContent = 'Bạn đã kết hợp thành công!';
-                rewardInfo.textContent = `Bạn đã tạo được ${this.titles[upgradedType]}!`;
+            case 'share':
+                titleElem.textContent = 'Chia sẻ thành công!';
+                messageElem.textContent = 'Cảm ơn bạn đã chia sẻ game.';
+                rewardInfo.textContent = 'Bạn nhận được thêm 10 lượt chơi!';
                 break;
-            case 'fami':
-                titleElem.textContent = 'Chúc mừng!';
-                messageElem.textContent = 'Bạn đã tạo được Fami!';
-                rewardInfo.textContent = 'Sữa đậu Fami đã được thêm vào điểm số của bạn!';
+            case 'share-limit':
+                titleElem.textContent = 'Đã đạt giới hạn!';
+                messageElem.textContent = 'Bạn đã đạt giới hạn chia sẻ trong ngày hôm nay.';
+                rewardInfo.textContent = 'Hãy quay lại vào ngày mai!';
                 break;
             case 'exchange':
                 titleElem.textContent = 'Đổi thành công!';
                 messageElem.textContent = 'Bạn đã đổi Fami lấy Đậu vàng!';
                 rewardInfo.textContent = 'Đã đổi 1 Sữa đậu Fami lấy 1 Hạt đậu vàng!';
                 break;
-            case 'scramble':
-                titleElem.textContent = 'Bàn chơi mới!';
-                messageElem.textContent = 'Bàn chơi đã được xáo trộn!';
-                rewardInfo.textContent = 'Bàn chơi đã được xáo trộn để tạo các nước đi mới!';
-                break;
-            case 'invalid':
-                titleElem.textContent = 'Sắp được rồi!';
-                messageElem.textContent = '';
-                rewardInfo.textContent = 'Kết hợp không thành công!';
-                break;
             default:
-                titleElem.textContent = 'Thông báo';
-                messageElem.textContent = '';
-                rewardInfo.textContent = type === 'hint' 
-                    ? upgradedType 
-                    : 'Thông báo từ game!';
+                // Các trường hợp khác không hiển thị modal
+                return;
         }
         
         this.successModal.style.display = 'flex';
         
-        // Tăng thời gian hiển thị modal lên 2 giây để người chơi thấy rõ hơn
+        // Tự động ẩn modal sau 2 giây
         setTimeout(() => {
             this.successModal.style.display = 'none';
         }, 2000);
-        */
     }
 
     updateExchangeButton() {
@@ -838,6 +860,8 @@ class SoyaFarming {
         // Xóa các highlight cũ
         this.clearHints();
         
+        if (this.isAnimating || this.moves <= 0) return;
+        
         // Tìm các khả năng kết hợp
         let validMatches = this.findBasicTypeMatches();
         if (validMatches.length === 0) {
@@ -857,6 +881,26 @@ class SoyaFarming {
                     this.hintCells.push(cellElement);
                 }
             });
+            
+            // Flash các ô được highlight để làm nổi bật
+            const flashCells = () => {
+                this.hintCells.forEach(cell => {
+                    cell.classList.toggle('flash-highlight');
+                });
+            };
+            
+            // Flash 3 lần để thu hút sự chú ý
+            flashCells();
+            setTimeout(flashCells, 300);
+            setTimeout(flashCells, 600);
+            setTimeout(flashCells, 900);
+            
+            if (this.hintBtn) {
+                this.hintBtn.classList.add('active');
+                setTimeout(() => {
+                    this.hintBtn.classList.remove('active');
+                }, 1000);
+            }
         } else {
             // Nếu không tìm thấy kết hợp nào, thực hiện việc tráo đổi
             this.scrambleBoard();
@@ -870,6 +914,9 @@ class SoyaFarming {
         // Tăng bộ đếm scramble liên tiếp
         this.consecutiveScrambles++;
         
+        // Lưu lại trạng thái bàn chơi trước khi tráo
+        const oldBoard = JSON.parse(JSON.stringify(this.board));
+        
         // Thêm hiệu ứng animation cho tất cả các ô
         document.querySelectorAll('.cell').forEach(cell => {
             cell.classList.add('scramble-animation');
@@ -879,8 +926,8 @@ class SoyaFarming {
             // Tráo đổi vị trí các ô
             this.shuffleBoard();
             
-            // Render lại bàn chơi
-            this.renderBoard();
+            // Tạo hiệu ứng tráo đổi vị trí giữa các ô
+            this.animateScramble(oldBoard);
             
             // Kiểm tra xem đã có nước đi hợp lệ chưa
             if (!this.hasValidMoves() && this.consecutiveScrambles < this.maxConsecutiveScrambles) {
@@ -888,31 +935,117 @@ class SoyaFarming {
                 setTimeout(() => {
                     this.isAnimating = false;
                     this.scrambleBoard();
-                }, 500);
+                }, 800); // Tăng thời gian để đợi animation hoàn tất
             } else {
                 // Nếu đã có hoặc đã đạt tới giới hạn tráo đổi, hoàn tất
-                this.isAnimating = false;
-                this.consecutiveScrambles = 0;
-                if (this.hintBtn) {
-                    // Flash nút gợi ý để khuyến khích người dùng sử dụng
-                    this.hintBtn.classList.add('highlight');
-                    setTimeout(() => {
-                        this.hintBtn.classList.remove('highlight');
-                    }, 2000);
-                }
-                
-                // Hiển thị thông báo
-                this.showSuccessModal('scramble');
+                setTimeout(() => {
+                    this.isAnimating = false;
+                    this.consecutiveScrambles = 0;
+                    if (this.hintBtn) {
+                        // Flash nút gợi ý để khuyến khích người dùng sử dụng
+                        this.hintBtn.classList.add('highlight');
+                        setTimeout(() => {
+                            this.hintBtn.classList.remove('highlight');
+                        }, 2000);
+                    }
+                }, 800); // Tăng thời gian để đợi animation hoàn tất
             }
-        }, 500);
+        }, 300);
+    }
+    
+    // Thêm phương thức mới để tạo hiệu ứng animation khi tráo đổi
+    animateScramble(oldBoard) {
+        // Tạo bản đồ các ô cũ và mới để so sánh
+        const oldCells = {};
+        const newCells = {};
+        
+        // Lưu vị trí các ô cũ
+        for (let i = 0; i < this.boardRows; i++) {
+            for (let j = 0; j < this.boardCols; j++) {
+                oldCells[`${oldBoard[i][j]}-${i}-${j}`] = {row: i, col: j, type: oldBoard[i][j]};
+            }
+        }
+        
+        // Lưu vị trí các ô mới
+        for (let i = 0; i < this.boardRows; i++) {
+            for (let j = 0; j < this.boardCols; j++) {
+                newCells[`${this.board[i][j]}-${i}-${j}`] = {row: i, col: j, type: this.board[i][j]};
+            }
+        }
+        
+        // Tạo hiệu ứng bay cho mỗi ô
+        for (let i = 0; i < this.boardRows; i++) {
+            for (let j = 0; j < this.boardCols; j++) {
+                // Lấy phần tử DOM cho ô hiện tại
+                const cell = document.querySelector(`[data-row="${i}"][data-col="${j}"]`);
+                if (!cell) continue;
+                
+                // Thêm class animation
+                cell.classList.add('tile-moving');
+                
+                // Đặt delay ngẫu nhiên cho mỗi ô để tạo hiệu ứng tự nhiên
+                const delay = Math.random() * 300;
+                cell.style.transitionDelay = `${delay}ms`;
+            }
+        }
+        
+        // Render lại bàn chơi sau khi animation kết thúc
+        setTimeout(() => {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('scramble-animation', 'tile-moving');
+                cell.style.transitionDelay = '';
+            });
+            this.renderBoard();
+        }, 700); // Đợi animation kết thúc
     }
 
     checkAndHandleNoValidMoves() {
         if (!this.hasValidMoves()) {
             setTimeout(() => {
+                // Gọi scrambleBoard thay vì reset toàn bộ bàn chơi
                 this.scrambleBoard();
             }, 500);
         }
+    }
+
+    // Thêm phương thức mới để tạo hiệu ứng Fami bay đến vị trí điểm số
+    createFlyingFami(sourceCell) {
+        const famiCounter = document.getElementById('fami-count');
+        if (!famiCounter) return;
+        
+        // Lấy vị trí của nguồn (ô đầu tiên)
+        const sourceRect = sourceCell.getBoundingClientRect();
+        // Lấy vị trí của đích (bộ đếm Fami)
+        const targetRect = famiCounter.getBoundingClientRect();
+        
+        // Tạo phần tử Fami bay
+        const flyingFami = document.createElement('div');
+        flyingFami.className = 'flying-fami';
+        
+        // Tạo hình ảnh Fami
+        const famiImg = document.createElement('img');
+        famiImg.src = './assets/fami.svg';
+        famiImg.alt = 'Fami';
+        flyingFami.appendChild(famiImg);
+        
+        // Đặt vị trí ban đầu
+        flyingFami.style.left = `${sourceRect.left + sourceRect.width / 2}px`;
+        flyingFami.style.top = `${sourceRect.top + sourceRect.height / 2}px`;
+        
+        // Thêm vào DOM
+        document.body.appendChild(flyingFami);
+        
+        // Đặt vị trí đích và thêm class để kích hoạt animation
+        setTimeout(() => {
+            flyingFami.style.left = `${targetRect.left + targetRect.width / 2}px`;
+            flyingFami.style.top = `${targetRect.top + targetRect.height / 2}px`;
+            flyingFami.classList.add('flying');
+            
+            // Sau khi animation kết thúc, xóa phần tử
+            setTimeout(() => {
+                flyingFami.remove();
+            }, 1000); // Thời gian phải >= thời gian animation
+        }, 50); // Timeout nhỏ để đảm bảo transition hoạt động
     }
 }
 
