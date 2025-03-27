@@ -1,14 +1,19 @@
-const CACHE_NAME = 'soya-game-v1';
+const CACHE_NAME = 'soya-game-v2';
 const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/game.js',
-  '/confetti.js',
-  '/manifest.json',
-  '/assets/game-icons.svg',
-  '/assets/bean-icon.svg',
-  '/assets/beo-tot.svg'
+  './',
+  './index.html',
+  './style.css',
+  './game.js',
+  './confetti.js',
+  './manifest.json',
+  './assets/fami.svg',
+  './assets/bean.svg',
+  './assets/omega3.svg',
+  './assets/asam.svg',
+  './assets/xo.svg',
+  './assets/beo-tot.svg',
+  './assets/dam-tot.svg',
+  './assets/xo-tot.svg'
 ];
 
 // Service worker install event
@@ -31,15 +36,22 @@ self.addEventListener('fetch', (event) => {
         // Return cached version or fetch new
         return response || fetch(event.request)
           .then(response => {
-            return caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, response.clone());
-                return response;
-              });
+            // Only cache successful responses from our origin
+            if (response.ok && event.request.url.startsWith(self.location.origin)) {
+              return caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, response.clone());
+                  return response;
+                });
+            }
+            return response;
           });
       })
       .catch(() => {
-        // Return offline page or fallback content
+        // Return offline page or fallback content for navigation requests
+        if (event.request.mode === 'navigate') {
+          return caches.match('./index.html');
+        }
         return new Response('Offline mode - Please check your connection');
       })
   );

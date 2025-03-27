@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="damTotGradient" cx="50%" cy="50%" r="70%" fx="40%" fy="40%">
+      <stop offset="0%" stop-color="#80DEEA" />
+      <stop offset="100%" stop-color="#00796B" />
+    </radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+      <feOffset dx="2" dy="2" result="offsetblur" />
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.5" />
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background circle -->
+  <circle cx="50" cy="50" r="40" fill="url(#damTotGradient)" stroke="#00796B" stroke-width="3" filter="url(#shadow)" />
+  
+  <!-- Rectangle shape -->
+  <rect x="30" y="30" width="40" height="40" rx="8" fill="#B2DFDB" stroke="#00796B" stroke-width="1.5" />
+  
+  <!-- Inner detail -->
+  <rect x="35" y="35" width="30" height="30" rx="5" fill="#26A69A" fill-opacity="0.6" />
+  
+  <!-- Shine -->
+  <ellipse cx="35" cy="35" rx="7" ry="5" fill="white" fill-opacity="0.3" />
+</svg> 

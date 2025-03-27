@@ -36,60 +36,37 @@ class SoyaFarming {
         this.maxSharesPerDay = 3;
         this.isAnimating = false;
         this.isTouchDevice = 'ontouchstart' in window;
+        
+        // Thêm biến cho tính năng gợi ý
+        this.hintTimer = null;
+        this.hintTimeout = 15000; // 15 giây
+        this.hintCells = [];
+        this.lastInteractionTime = Date.now();
+        
+        // Thêm biến cho việc đếm số lần scramble liên tiếp để tránh vòng lặp vô hạn
+        this.consecutiveScrambles = 0;
+        this.maxConsecutiveScrambles = 5;
 
         // Get DOM elements
         this.gameBoard = document.getElementById('game-board');
         this.scoreDisplay = document.getElementById('score');
         this.movesDisplay = document.getElementById('moves');
         this.shareBtn = document.getElementById('share-btn');
+        this.hintBtn = document.getElementById('hint-btn');
         this.registerModal = document.getElementById('register-modal');
         this.successModal = document.getElementById('success-modal');
 
         this.initializeGame();
         this.setupEventListeners();
         this.createIcons();
+        this.startHintTimer();
     }
 
     createIcons() {
-        try {
-            const iconSizes = [72, 96, 128, 144, 152, 192, 384, 512];
-            iconSizes.forEach(size => {
-                const canvas = document.createElement('canvas');
-                canvas.width = size;
-                canvas.height = size;
-                const ctx = canvas.getContext('2d');
-                
-                // Draw icon background
-                ctx.fillStyle = '#4CAF50';
-                ctx.fillRect(0, 0, size, size);
-
-                // Draw icon border
-                ctx.strokeStyle = '#388E3C';
-                ctx.lineWidth = size / 20;
-                ctx.strokeRect(size/10, size/10, size*0.8, size*0.8);
-                
-                // Draw fami icon
-                ctx.fillStyle = 'white';
-                ctx.font = `${size/2}px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText('🥛', size/2, size/2);
-
-                // Save icon
-                canvas.toBlob(blob => {
-                    if (blob) {
-                        const iconUrl = URL.createObjectURL(blob);
-                        const link = document.createElement('link');
-                        link.rel = 'icon';
-                        link.sizes = `${size}x${size}`;
-                        link.href = iconUrl;
-                        document.head.appendChild(link);
-                    }
-                }, 'image/png');
-            });
-        } catch (e) {
-            console.warn('Could not create PWA icons:', e);
-        }
+        console.log('Game icons loaded from assets/icons directory');
+        // Các biểu tượng đã được cung cấp dưới dạng file tĩnh
+        // Nếu trong trường hợp cần thiết, chúng ta có thể tạo thêm các biểu tượng động
+        // nhưng ưu tiên sử dụng các biểu tượng tĩnh
     }
 
     resetGame() {
@@ -126,64 +103,181 @@ class SoyaFarming {
     }
 
     hasValidMoves() {
-        // Check for possible matches of same type (horizontal)
+        // Kiểm tra xem có kết hợp 3 ô cùng loại basic không
+        const basicTypeMatches = this.findBasicTypeMatches();
+        if (basicTypeMatches.length > 0) {
+            return true;
+        }
+        
+        // Kiểm tra xem có đủ 3 loại special để tạo Fami không
+        const specialTypes = {
+            'beo-tot': [],
+            'dam-tot': [],
+            'xo-tot': []
+        };
+        
+        for (let i = 0; i < this.boardRows; i++) {
+            for (let j = 0; j < this.boardCols; j++) {
+                const type = this.board[i][j];
+                if (this.types.special.includes(type)) {
+                    specialTypes[type].push({row: i, col: j});
+                }
+            }
+        }
+        
+        // Kiểm tra xem có ít nhất một ô của mỗi loại special không
+        if (specialTypes['beo-tot'].length > 0 && 
+            specialTypes['dam-tot'].length > 0 && 
+            specialTypes['xo-tot'].length > 0) {
+            
+            // Kiểm tra xem các ô special có liền kề nhau không
+            for (let beo of specialTypes['beo-tot']) {
+                for (let dam of specialTypes['dam-tot']) {
+                    if (this.isAdjacent(beo.row, beo.col, dam.row, dam.col)) {
+                        for (let xo of specialTypes['xo-tot']) {
+                            if (this.isAdjacent(dam.row, dam.col, xo.row, xo.col) ||
+                                this.isAdjacent(beo.row, beo.col, xo.row, xo.col)) {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+
+    findBasicTypeMatches() {
+        const matches = [];
+        
+        // Kiểm tra theo hàng ngang
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols - 2; j++) {
+                // Kiểm tra 3 ô liên tiếp theo hàng ngang
                 if (this.board[i][j] === this.board[i][j+1] && 
                     this.board[i][j] === this.board[i][j+2] &&
                     this.types.basic.includes(this.board[i][j])) {
-                    return true;
+                    matches.push([
+                        {row: i, col: j},
+                        {row: i, col: j+1},
+                        {row: i, col: j+2}
+                    ]);
                 }
             }
         }
-
-        // Check for possible matches of same type (vertical)
+        
+        // Kiểm tra theo hàng dọc
         for (let i = 0; i < this.boardRows - 2; i++) {
             for (let j = 0; j < this.boardCols; j++) {
+                // Kiểm tra 3 ô liên tiếp theo hàng dọc
                 if (this.board[i][j] === this.board[i+1][j] && 
                     this.board[i][j] === this.board[i+2][j] &&
                     this.types.basic.includes(this.board[i][j])) {
-                    return true;
+                    matches.push([
+                        {row: i, col: j},
+                        {row: i+1, col: j},
+                        {row: i+2, col: j}
+                    ]);
                 }
             }
         }
         
-        // Count upgraded elements
-        const upgradedTypes = ['beo-tot', 'dam-tot', 'xo-tot'];
-        const typeCounts = {};
-        upgradedTypes.forEach(type => typeCounts[type] = 0);
-        
+        // Kiểm tra 3 ô liên kết (không nhất thiết phải thẳng hàng)
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
                 const type = this.board[i][j];
-                if (upgradedTypes.includes(type)) {
-                    typeCounts[type]++;
+                if (!this.types.basic.includes(type)) continue;
+                
+                // Tìm tất cả các ô liền kề
+                const neighbors = this.getAdjacentCells(i, j);
+                
+                // Lọc ra các ô có cùng loại
+                const sameTypeNeighbors = neighbors.filter(n => this.board[n.row][n.col] === type);
+                
+                // Với mỗi ô liền kề cùng loại, tìm một ô khác liền kề với nó
+                for (let n1 of sameTypeNeighbors) {
+                    const neighborsOfN1 = this.getAdjacentCells(n1.row, n1.col);
+                    
+                    // Lọc ra các ô có cùng loại nhưng không phải ô ban đầu
+                    const thirdCells = neighborsOfN1.filter(n2 => 
+                        this.board[n2.row][n2.col] === type && 
+                        !(n2.row === i && n2.col === j)
+                    );
+                    
+                    // Nếu tìm thấy, thêm vào danh sách matches
+                    if (thirdCells.length > 0) {
+                        matches.push([
+                            {row: i, col: j},
+                            {row: n1.row, col: n1.col},
+                            {row: thirdCells[0].row, col: thirdCells[0].col}
+                        ]);
+                    }
                 }
             }
         }
         
-        // Check if all upgraded types are available
-        if (upgradedTypes.every(type => typeCounts[type] > 0)) {
-            return true;
-        }
+        return matches;
+    }
 
-        // Check for possible combinations of basic elements
-        const basicTypeCounts = {};
-        this.types.basic.forEach(type => basicTypeCounts[type] = 0);
+    getAdjacentCells(row, col) {
+        const adjacent = [];
         
+        // Ô bên trên
+        if (row > 0) adjacent.push({row: row-1, col});
+        
+        // Ô bên dưới
+        if (row < this.boardRows - 1) adjacent.push({row: row+1, col});
+        
+        // Ô bên trái
+        if (col > 0) adjacent.push({row, col: col-1});
+        
+        // Ô bên phải
+        if (col < this.boardCols - 1) adjacent.push({row, col: col+1});
+        
+        return adjacent;
+    }
+
+    findSpecialTypeMatches() {
+        const matches = [];
+        const specialTypes = {
+            'beo-tot': [],
+            'dam-tot': [],
+            'xo-tot': []
+        };
+        
+        // Thu thập tất cả các ô special
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
                 const type = this.board[i][j];
-                if (this.types.basic.includes(type)) {
-                    basicTypeCounts[type]++;
+                if (this.types.special.includes(type)) {
+                    specialTypes[type].push({row: i, col: j});
                 }
             }
         }
         
-        return this.types.basic.every(type => basicTypeCounts[type] >= 3);
+        // Kiểm tra xem các ô special có liền kề nhau không
+        for (let beo of specialTypes['beo-tot']) {
+            for (let dam of specialTypes['dam-tot']) {
+                if (this.isAdjacent(beo.row, beo.col, dam.row, dam.col)) {
+                    for (let xo of specialTypes['xo-tot']) {
+                        if (this.isAdjacent(dam.row, dam.col, xo.row, xo.col)) {
+                            matches.push([beo, dam, xo]);
+                        } else if (this.isAdjacent(beo.row, beo.col, xo.row, xo.col)) {
+                            matches.push([beo, dam, xo]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return matches;
     }
 
     shuffleBoard() {
+        // Lưu lại trạng thái trước khi tráo
+        const oldBoard = JSON.parse(JSON.stringify(this.board));
+        
         const allCells = [];
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
@@ -191,11 +285,13 @@ class SoyaFarming {
             }
         }
         
+        // Tráo ngẫu nhiên
         for (let i = allCells.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [allCells[i], allCells[j]] = [allCells[j], allCells[i]];
         }
         
+        // Đặt lại vào bàn chơi
         let index = 0;
         for (let i = 0; i < this.boardRows; i++) {
             for (let j = 0; j < this.boardCols; j++) {
@@ -203,9 +299,28 @@ class SoyaFarming {
             }
         }
         
-        if (!this.hasValidMoves()) {
-            this.initializeBoard();
+        // Kiểm tra nếu không có nước đi hợp lệ và đã đạt tới giới hạn tráo đổi
+        if (!this.hasValidMoves() && this.consecutiveScrambles >= this.maxConsecutiveScrambles) {
+            // Thử thêm các ô cơ bản để đảm bảo có ít nhất 3 ô cùng loại
+            this.ensureValidMoves();
         }
+        
+        // Đảm bảo không tráo trùng lặp
+        if (JSON.stringify(this.board) === JSON.stringify(oldBoard)) {
+            this.shuffleBoard(); // Tráo lại nếu bàn chơi không thay đổi
+        }
+    }
+
+    ensureValidMoves() {
+        // Đặt 3 ô liên tiếp cùng loại để đảm bảo có nước đi
+        const type = this.types.basic[Math.floor(Math.random() * this.types.basic.length)];
+        const row = Math.floor(Math.random() * (this.boardRows - 2)) + 1;
+        const col = Math.floor(Math.random() * (this.boardCols - 2)) + 1;
+        
+        // Đặt 3 ô theo hàng ngang
+        this.board[row][col] = type;
+        this.board[row][col+1] = type;
+        this.board[row][col-1] = type;
     }
 
     getRandomType() {
@@ -227,11 +342,18 @@ class SoyaFarming {
                 cell.dataset.col = j;
                 cell.dataset.type = this.board[i][j];
                 
-                const text = document.createElement('div');
-                text.className = 'cell-content';
-                text.innerHTML = this.emojis[this.board[i][j]];
-                text.title = this.titles[this.board[i][j]] || this.board[i][j];
-                cell.appendChild(text);
+                const content = document.createElement('div');
+                content.className = 'cell-content';
+                
+                // Sử dụng SVG thay vì emoji
+                const img = document.createElement('img');
+                img.src = `assets/${this.board[i][j]}.svg`;
+                img.alt = this.titles[this.board[i][j]] || this.board[i][j];
+                img.title = this.titles[this.board[i][j]] || this.board[i][j];
+                img.className = 'cell-icon';
+                
+                content.appendChild(img);
+                cell.appendChild(content);
                 this.gameBoard.appendChild(cell);
             }
         }
@@ -252,6 +374,13 @@ class SoyaFarming {
             const row = parseInt(cell.dataset.row);
             const col = parseInt(cell.dataset.col);
             this.handleCellClick(row, col);
+            
+            // Cập nhật thời gian tương tác cuối cùng và khởi động lại bộ đếm gợi ý
+            this.lastInteractionTime = Date.now();
+            this.resetHintTimer();
+            
+            // Xóa các highlight gợi ý trước đó nếu có
+            this.clearHints();
         };
 
         if (this.isTouchDevice) {
@@ -264,6 +393,17 @@ class SoyaFarming {
             this.shareBtn.addEventListener(this.isTouchDevice ? 'touchend' : 'click', (e) => {
                 e.preventDefault();
                 this.handleShare();
+                this.lastInteractionTime = Date.now();
+                this.resetHintTimer();
+            });
+        }
+        
+        if (this.hintBtn) {
+            this.hintBtn.addEventListener(this.isTouchDevice ? 'touchend' : 'click', (e) => {
+                e.preventDefault();
+                this.showHint();
+                this.lastInteractionTime = Date.now();
+                this.resetHintTimer();
             });
         }
 
@@ -289,6 +429,9 @@ class SoyaFarming {
                 } else {
                     alert('Bạn cần có ít nhất 1 Sữa đậu Fami để đổi lấy Hạt đậu vàng!');
                 }
+                
+                this.lastInteractionTime = Date.now();
+                this.resetHintTimer();
             });
         }
 
@@ -298,6 +441,9 @@ class SoyaFarming {
                 if (e.touches.length > 1) {
                     e.preventDefault();
                 }
+                
+                this.lastInteractionTime = Date.now();
+                this.resetHintTimer();
             }, { passive: false });
 
             let lastTap = 0;
@@ -307,6 +453,9 @@ class SoyaFarming {
                     e.preventDefault();
                 }
                 lastTap = now;
+                
+                this.lastInteractionTime = Date.now();
+                this.resetHintTimer();
             }, { passive: false });
         }
 
@@ -321,16 +470,6 @@ class SoyaFarming {
             return;
         }
 
-        // Show hint after first selection
-        if (this.selectedCells.length === 1) {
-            const firstType = this.selectedCells[0].type;
-            if (this.types.basic.includes(firstType)) {
-                this.showSuccessModal('hint', `Chọn thêm 2 ô ${this.titles[firstType]} để tạo phần Tốt!`);
-            } else if (this.types.special.includes(firstType)) {
-                this.showSuccessModal('hint', 'Chọn thêm 2 phần Tốt khác để tạo Fami!');
-            }
-        }
-        
         if (this.selectedCells.length === 0) {
             this.selectedCells.push({row, col, type});
             cell.classList.add('selected');
@@ -396,16 +535,28 @@ class SoyaFarming {
                 this.showSuccessModal('upgrade', upgradedType);
                 this.renderBoard();
                 this.isAnimating = false;
+                
+                // Kiểm tra nếu không còn nước đi hợp lệ
+                this.checkAndHandleNoValidMoves();
             } else if (allSpecialType && hasAllSpecialTypes) {
+                // Save selected cells positions before any potential clearing
+                const firstCellRow = this.selectedCells[0].row;
+                const firstCellCol = this.selectedCells[0].col;
+                const otherCells = this.selectedCells.slice(1).map(cell => ({row: cell.row, col: cell.col}));
+                
                 // Create temporary Fami for animation
-                this.board[this.selectedCells[0].row][this.selectedCells[0].col] = 'fami';
+                this.board[firstCellRow][firstCellCol] = 'fami';
+                
+                // Kích hoạt hiệu ứng confetti mạnh hơn
+                createConfetti();
+                createConfetti();
                 createConfetti();
                 
                 this.renderBoard();
                 
                 // Animate Fami appearance and disappearance
                 setTimeout(() => {
-                    const famiCell = document.querySelector(`[data-row="${this.selectedCells[0].row}"][data-col="${this.selectedCells[0].col}"] .cell-content`);
+                    const famiCell = document.querySelector(`[data-row="${firstCellRow}"][data-col="${firstCellCol}"] .cell-content`);
                     if (famiCell) {
                         famiCell.classList.add('fami-disappearing');
                     }
@@ -413,42 +564,25 @@ class SoyaFarming {
                     setTimeout(() => {
                         this.famiCount++;
                         // Replace Fami with random basic type
-                        this.board[this.selectedCells[0].row][this.selectedCells[0].col] = this.getRandomType();
-                        this.selectedCells.slice(1).forEach(cell => {
+                        this.board[firstCellRow][firstCellCol] = this.getRandomType();
+                        otherCells.forEach(cell => {
                             this.board[cell.row][cell.col] = this.getRandomType();
                         });
                         this.renderBoard();
                         this.updateUI();
                         this.isAnimating = false;
 
-                        if (!this.hasValidMoves()) {
-                            this.shuffleBoard();
-                            this.renderBoard();
-                            alert('Bàn chơi đã được xáo trộn để tạo các nước đi mới!');
-                        }
-                    }, 500);
+                        // Kiểm tra nếu không còn nước đi hợp lệ
+                        this.checkAndHandleNoValidMoves();
+                    }, 2000); // Kéo dài thời gian hiển thị Fami để người chơi thấy rõ hơn
                 }, 1000);
                 
                 this.showSuccessModal('fami');
+                this.clearSelection();
             } else {
-                // Show specific error message based on the selected types
-                const hasUpgradedTypes = types.some(type => this.types.special.includes(type));
-                const allBasicTypes = types.every(type => this.types.basic.includes(type));
-                
-                let message = '';
-                if (hasUpgradedTypes) {
-                    message = 'Để tạo Fami cần kết hợp: Béo Tốt + Đạm Tốt + Xơ Tốt!';
-                } else if (allBasicTypes) {
-                    message = 'Kết hợp 3 ô cùng loại để tạo nên phần Tốt!';
-                } else {
-                    message = 'Kết hợp không hợp lệ! Hãy thử lại nhé!';
-                }
-                
+                // Không hiển thị alert mà chỉ dùng modal
                 this.showSuccessModal('invalid');
-                setTimeout(() => {
-                    alert(message);
-                    this.isAnimating = false;
-                }, 1000);
+                this.isAnimating = false;
                 this.clearSelection();
                 return;
             }
@@ -467,6 +601,8 @@ class SoyaFarming {
             cell.classList.remove('selected');
         });
         this.selectedCells = [];
+        this.lastInteractionTime = Date.now();
+        this.resetHintTimer();
     }
 
     handleShare() {
@@ -485,13 +621,44 @@ class SoyaFarming {
     handleGameOver() {
         this.isAnimating = true;
         setTimeout(() => {
-            alert(`Trò chơi kết thúc!\nSữa đậu Fami: ${this.famiCount} 🥛\nHạt đậu vàng: ${this.beanCount} 🌟`);
-            this.isAnimating = false;
-            
-            if (confirm('Bạn có muốn chơi lại không?')) {
-                this.resetGame();
-            }
+            this.showGameOverModal();
         }, 500);
+    }
+
+    showGameOverModal() {
+        if (!this.successModal) {
+            this.isAnimating = false;
+            return;
+        }
+        
+        const titleElem = this.successModal.querySelector('h3');
+        const messageElem = this.successModal.querySelector('p');
+        const rewardInfo = this.successModal.querySelector('.reward-info');
+        
+        if (!rewardInfo || !titleElem || !messageElem) {
+            this.isAnimating = false;
+            return;
+        }
+        
+        titleElem.textContent = 'Trò chơi kết thúc!';
+        messageElem.textContent = 'Bạn đã hết lượt chơi.';
+        rewardInfo.innerHTML = `Sữa đậu Fami: ${this.famiCount}<br>Hạt đậu vàng: ${this.beanCount}`;
+        
+        // Thêm nút chơi lại vào modal
+        const playAgainBtn = document.createElement('button');
+        playAgainBtn.textContent = 'Chơi lại';
+        playAgainBtn.className = 'btn primary';
+        playAgainBtn.style.marginTop = '15px';
+        playAgainBtn.onclick = () => {
+            this.resetGame();
+            this.successModal.style.display = 'none';
+        };
+        
+        rewardInfo.appendChild(document.createElement('br'));
+        rewardInfo.appendChild(playAgainBtn);
+        
+        this.successModal.style.display = 'flex';
+        this.isAnimating = false;
     }
 
     exchangeFamiForBean() {
@@ -507,23 +674,44 @@ class SoyaFarming {
     showSuccessModal(type, upgradedType = '') {
         if (!this.successModal) return;
         
+        const titleElem = this.successModal.querySelector('h3');
+        const messageElem = this.successModal.querySelector('p');
         const rewardInfo = this.successModal.querySelector('.reward-info');
-        if (!rewardInfo) return;
+        
+        if (!rewardInfo || !titleElem || !messageElem) return;
         
         switch(type) {
             case 'upgrade':
-                rewardInfo.textContent = `🎯 Tuyệt vời! Bạn đã tạo được ${this.titles[upgradedType]}!`;
+                titleElem.textContent = 'Tuyệt vời!';
+                messageElem.textContent = 'Bạn đã kết hợp thành công!';
+                rewardInfo.textContent = `Bạn đã tạo được ${this.titles[upgradedType]}!`;
                 break;
             case 'fami':
-                rewardInfo.textContent = '🎉 Chúc mừng! Bạn đã tạo được Sữa đậu Fami! 🥛';
+                titleElem.textContent = 'Chúc mừng!';
+                messageElem.textContent = 'Bạn đã tạo được Fami!';
+                rewardInfo.textContent = 'Sữa đậu Fami đã được thêm vào điểm số của bạn!';
                 break;
             case 'exchange':
-                rewardInfo.textContent = '✨ Đã đổi thành công 1 Sữa đậu Fami lấy 1 Hạt đậu vàng!';
+                titleElem.textContent = 'Đổi thành công!';
+                messageElem.textContent = 'Bạn đã đổi Fami lấy Đậu vàng!';
+                rewardInfo.textContent = 'Đã đổi 1 Sữa đậu Fami lấy 1 Hạt đậu vàng!';
+                break;
+            case 'scramble':
+                titleElem.textContent = 'Bàn chơi mới!';
+                messageElem.textContent = 'Bàn chơi đã được xáo trộn!';
+                rewardInfo.textContent = 'Bàn chơi đã được xáo trộn để tạo các nước đi mới!';
+                break;
+            case 'invalid':
+                titleElem.textContent = 'Sắp được rồi!';
+                messageElem.textContent = '';
+                rewardInfo.textContent = 'Kết hợp không thành công!';
                 break;
             default:
+                titleElem.textContent = 'Thông báo';
+                messageElem.textContent = '';
                 rewardInfo.textContent = type === 'hint' 
                     ? upgradedType 
-                    : 'Kết hợp không thành công!';
+                    : 'Thông báo từ game!';
         }
         
         this.successModal.style.display = 'flex';
@@ -549,6 +737,118 @@ class SoyaFarming {
         if (this.shareBtn) this.shareBtn.disabled = this.shareCount >= this.maxSharesPerDay;
         
         this.updateExchangeButton();
+    }
+
+    startHintTimer() {
+        this.stopHintTimer(); // Dừng timer hiện tại nếu có
+        
+        this.hintTimer = setInterval(() => {
+            // Nếu đã qua 15 giây kể từ lần tương tác cuối
+            if (Date.now() - this.lastInteractionTime > this.hintTimeout && !this.isAnimating) {
+                this.showHint();
+            }
+        }, 1000); // Kiểm tra mỗi giây
+    }
+    
+    stopHintTimer() {
+        if (this.hintTimer) {
+            clearInterval(this.hintTimer);
+            this.hintTimer = null;
+        }
+    }
+    
+    resetHintTimer() {
+        this.stopHintTimer();
+        this.startHintTimer();
+        this.clearHints();
+    }
+    
+    clearHints() {
+        document.querySelectorAll('.cell.highlight').forEach(cell => {
+            cell.classList.remove('highlight');
+        });
+        this.hintCells = [];
+    }
+    
+    showHint() {
+        // Xóa các highlight cũ
+        this.clearHints();
+        
+        // Tìm các khả năng kết hợp
+        let validMatches = this.findBasicTypeMatches();
+        if (validMatches.length === 0) {
+            validMatches = this.findSpecialTypeMatches();
+        }
+        
+        if (validMatches.length > 0) {
+            // Chọn một kết hợp ngẫu nhiên
+            const randomMatchIndex = Math.floor(Math.random() * validMatches.length);
+            const match = validMatches[randomMatchIndex];
+            
+            // Highlight các ô
+            match.forEach(cell => {
+                const cellElement = document.querySelector(`[data-row="${cell.row}"][data-col="${cell.col}"]`);
+                if (cellElement) {
+                    cellElement.classList.add('highlight');
+                    this.hintCells.push(cellElement);
+                }
+            });
+        } else {
+            // Nếu không tìm thấy kết hợp nào, thực hiện việc tráo đổi
+            this.scrambleBoard();
+        }
+    }
+    
+    scrambleBoard() {
+        if (this.isAnimating) return;
+        this.isAnimating = true;
+        
+        // Tăng bộ đếm scramble liên tiếp
+        this.consecutiveScrambles++;
+        
+        // Thêm hiệu ứng animation cho tất cả các ô
+        document.querySelectorAll('.cell').forEach(cell => {
+            cell.classList.add('scramble-animation');
+        });
+        
+        setTimeout(() => {
+            // Tráo đổi vị trí các ô
+            this.shuffleBoard();
+            
+            // Render lại bàn chơi
+            this.renderBoard();
+            
+            // Kiểm tra xem đã có nước đi hợp lệ chưa
+            if (!this.hasValidMoves() && this.consecutiveScrambles < this.maxConsecutiveScrambles) {
+                // Nếu vẫn chưa có, tiếp tục tráo đổi
+                setTimeout(() => {
+                    this.isAnimating = false;
+                    this.scrambleBoard();
+                }, 500);
+            } else {
+                // Nếu đã có hoặc đã đạt tới giới hạn tráo đổi, hoàn tất
+                this.isAnimating = false;
+                this.consecutiveScrambles = 0;
+                if (this.hintBtn) {
+                    // Flash nút gợi ý để khuyến khích người dùng sử dụng
+                    this.hintBtn.classList.add('highlight');
+                    setTimeout(() => {
+                        this.hintBtn.classList.remove('highlight');
+                    }, 2000);
+                }
+                
+                // Hiển thị thông báo
+                this.showSuccessModal('scramble');
+            }
+        }, 500);
+    }
+
+    checkAndHandleNoValidMoves() {
+        if (!this.hasValidMoves()) {
+            setTimeout(() => {
+                this.scrambleBoard();
+            }, 500);
+        }
     }
 }
 

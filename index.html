@@ -8,18 +8,19 @@
     <title>Soya Farming - VinaSoy</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" href="assets/fami.svg">
+    <link rel="icon" type="image/svg+xml" href="assets/fami.svg">
 </head>
 <body>
     <div class="game-container">
         <div id="header">
             <div class="score-container">
                 <div class="score-item">
-                    <span class="fami-emoji">🥛</span>
+                    <img src="assets/fami.svg" alt="Fami" class="header-icon">
                     <span id="fami-count">0</span> Fami
                 </div>
                 <div class="score-item">
-                    <span class="bean-emoji">🌟</span>
+                    <img src="assets/bean.svg" alt="Đậu vàng" class="header-icon">
                     <span id="bean-count">0</span> Đậu vàng
                 </div>
             </div>
@@ -32,33 +33,33 @@
             <h3>Hướng dẫn kết hợp</h3>
             <div class="recipes">
                 <div class="recipe">
-                    <span>3 x 💧</span>
+                    <span>3 x <img src="assets/omega3.svg" alt="Omega 3" class="recipe-icon"></span>
                     <span class="equals">=</span>
-                    <span>🌱</span>
+                    <span><img src="assets/beo-tot.svg" alt="Béo Tốt" class="recipe-icon"></span>
                     <span class="desc">(Omega 3 → Béo Tốt)</span>
                 </div>
                 <div class="recipe">
-                    <span>3 x 🔮</span>
+                    <span>3 x <img src="assets/asam.svg" alt="ASAM" class="recipe-icon"></span>
                     <span class="equals">=</span>
-                    <span>🍃</span>
+                    <span><img src="assets/dam-tot.svg" alt="Đạm Tốt" class="recipe-icon"></span>
                     <span class="desc">(ASAM → Đạm Tốt)</span>
                 </div>
                 <div class="recipe">
-                    <span>3 x 🌿</span>
+                    <span>3 x <img src="assets/xo.svg" alt="Xơ" class="recipe-icon"></span>
                     <span class="equals">=</span>
-                    <span>🍂</span>
+                    <span><img src="assets/xo-tot.svg" alt="Xơ Tốt" class="recipe-icon"></span>
                     <span class="desc">(Xơ → Xơ Tốt)</span>
                 </div>
                 <div class="recipe special">
-                    <span>🌱 + 🍃 + 🍂</span>
+                    <span><img src="assets/beo-tot.svg" alt="Béo Tốt" class="recipe-icon"> + <img src="assets/dam-tot.svg" alt="Đạm Tốt" class="recipe-icon"> + <img src="assets/xo-tot.svg" alt="Xơ Tốt" class="recipe-icon"></span>
                     <span class="equals">=</span>
-                    <span>🥛</span>
+                    <span><img src="assets/fami.svg" alt="Fami" class="recipe-icon"></span>
                     <span class="desc">(Béo Tốt + Đạm Tốt + Xơ Tốt = Fami)</span>
                 </div>
                 <div class="exchange">
-                    <span>🥛</span>
+                    <span><img src="assets/fami.svg" alt="Fami" class="recipe-icon"></span>
                     <span class="equals">→</span>
-                    <span>🌟</span>
+                    <span><img src="assets/bean.svg" alt="Đậu Vàng" class="recipe-icon"></span>
                     <span class="desc">(Đổi Fami lấy Đậu vàng)</span>
                 </div>
             </div>
@@ -67,6 +68,7 @@
         <div id="game-board"></div>
 
         <div class="controls">
+            <button id="hint-btn" class="btn primary">Gợi ý</button>
             <button id="share-btn" class="btn primary">Chia sẻ để nhận thêm lượt</button>
             <button id="exchange-btn" class="btn secondary">Đổi Fami lấy Đậu vàng</button>
         </div>
@@ -98,7 +100,7 @@
         // Register service worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('./sw.js')
                     .then(registration => {
                         console.log('ServiceWorker registered:', registration);
                     })
