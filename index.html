@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#4CAF50">
     <meta name="description" content="Kết hợp các thành phần để tạo ra Sữa đậu Fami">
+    <base href="./">
     <title>Soya Farming - VinaSoy</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
@@ -88,27 +89,33 @@
         <!-- Modal thông báo kết hợp thành công -->
         <div id="success-modal" class="modal">
             <div class="modal-content">
-                <h3>Tuyệt vời!</h3>
-                <p>Bạn đã kết hợp thành công!</p>
+                <h3>Thông báo</h3>
+                <p></p>
                 <div class="reward-info"></div>
             </div>
         </div>
     </div>
+
     <script src="confetti.js"></script>
     <script src="game.js"></script>
     <script>
-        // Register service worker
+        // Register service worker for PWA support
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            window.addEventListener('load', function() {
                 navigator.serviceWorker.register('./sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registered:', registration);
+                    .then(function(registration) {
+                        console.log('ServiceWorker registered: ', registration);
                     })
-                    .catch(error => {
-                        console.log('ServiceWorker registration failed:', error);
+                    .catch(function(error) {
+                        console.log('ServiceWorker registration failed: ', error);
                     });
             });
         }
+        
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', () => {
+            const game = new SoyaFarming();
+        });
     </script>
 </body>
 </html>

@@ -2,7 +2,7 @@
   "name": "Soya Farming Game",
   "short_name": "Soya Game",
   "description": "Kết hợp các thành phần để tạo ra Sữa đậu Fami",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f0f8f0",
   "theme_color": "#4CAF50",

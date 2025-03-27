@@ -347,7 +347,7 @@ class SoyaFarming {
                 
                 // Sử dụng SVG thay vì emoji
                 const img = document.createElement('img');
-                img.src = `assets/${this.board[i][j]}.svg`;
+                img.src = `./assets/${this.board[i][j]}.svg`;
                 img.alt = this.titles[this.board[i][j]] || this.board[i][j];
                 img.title = this.titles[this.board[i][j]] || this.board[i][j];
                 img.className = 'cell-icon';

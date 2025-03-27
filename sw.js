@@ -1,4 +1,4 @@
-const CACHE_NAME = 'soya-game-v2';
+const CACHE_NAME = 'soya-game-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -30,6 +30,11 @@ self.addEventListener('install', (event) => {
 
 // Service worker fetch event
 self.addEventListener('fetch', (event) => {
+  // Không xử lý requests không đến từ cùng origin
+  if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -37,7 +42,7 @@ self.addEventListener('fetch', (event) => {
         return response || fetch(event.request)
           .then(response => {
             // Only cache successful responses from our origin
-            if (response.ok && event.request.url.startsWith(self.location.origin)) {
+            if (response.ok) {
               return caches.open(CACHE_NAME)
                 .then(cache => {
                   cache.put(event.request, response.clone());
@@ -45,6 +50,14 @@ self.addEventListener('fetch', (event) => {
                 });
             }
             return response;
+          })
+          .catch(error => {
+            console.error('Fetch failed:', error);
+            // Nếu là request cho một ảnh, trả về ảnh mặc định
+            if (event.request.url.match(/\.(jpg|jpeg|png|gif|svg)$/)) {
+              return caches.match('./assets/fami.svg');
+            }
+            throw error;
           });
       })
       .catch(() => {
