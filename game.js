@@ -491,7 +491,6 @@ class SoyaFarming {
                 
                 if (this.exchangeFamiForBean()) {
                     this.showSuccessModal('exchange');
-                    createConfetti();
                 }
                 
                 this.lastInteractionTime = Date.now();
@@ -641,11 +640,6 @@ class SoyaFarming {
                 
                 // Đặt Fami vào ô đầu tiên để hiển thị hiệu ứng
                 this.board[firstCell.row][firstCell.col] = 'fami';
-                
-                // Kích hoạt hiệu ứng confetti mạnh hơn
-                createConfetti();
-                setTimeout(() => createConfetti(), 300);
-                setTimeout(() => createConfetti(), 600);
                 
                 // Render lại bàn chơi để thấy sự thay đổi
                 this.renderBoard();
@@ -1076,6 +1070,18 @@ class SoyaFarming {
         famiImg.src = './assets/fami.svg';
         famiImg.alt = 'Fami';
         flyingFami.appendChild(famiImg);
+        
+        // Tạo hiệu ứng đuôi ánh sáng
+        for (let i = 0; i < 15; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.className = 'sparkle';
+            sparkle.style.setProperty('--delay', `${Math.random() * 1000}ms`);
+            sparkle.style.setProperty('--size', `${Math.random() * 5 + 2}px`);
+            sparkle.style.setProperty('--top', `${Math.random() * 100}%`);
+            sparkle.style.setProperty('--left', `${Math.random() * 100}%`);
+            sparkle.style.setProperty('--opacity', `${Math.random() * 0.7 + 0.3}`);
+            flyingFami.appendChild(sparkle);
+        }
         
         // Đặt vị trí ban đầu
         flyingFami.style.left = `${sourceRect.left + sourceRect.width / 2}px`;

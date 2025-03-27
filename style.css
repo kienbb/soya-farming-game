@@ -535,35 +535,81 @@ body {
     }
 }
 
-/* Hiệu ứng ánh sáng xung quanh Fami */
+/* CSS cho hiệu ứng hộp Fami bay */
+.flying-fami {
+    position: fixed;
+    width: 40px;
+    height: 40px;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+    transition: left 1s ease-in-out, top 1s ease-in-out, transform 1s ease-in-out;
+}
+
+.flying-fami img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    z-index: 2;
+    position: relative;
+}
+
+.flying-fami.flying {
+    transform: translate(-50%, -50%) scale(0.5);
+}
+
+/* Hiệu ứng đuôi ánh sáng lấp lánh */
+.sparkle {
+    position: absolute;
+    width: var(--size, 3px);
+    height: var(--size, 3px);
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    top: var(--top, 50%);
+    left: var(--left, 50%);
+    opacity: var(--opacity, 0.8);
+    filter: blur(1px);
+    animation: sparkle-animation 1s linear var(--delay, 0ms);
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes sparkle-animation {
+    0% {
+        opacity: 0;
+        transform: scale(0);
+    }
+    20% {
+        opacity: var(--opacity, 0.8);
+        transform: scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0);
+    }
+}
+
+/* Cải thiện hiệu ứng ánh sáng cho ô Fami */
 .fami-light {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 0px;
-    height: 0px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 215, 0, 0) 70%);
+    width: 100%;
+    height: 100%;
     transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+    animation: pulse-light 1.5s infinite alternate;
+    z-index: 1;
     pointer-events: none;
-    z-index: 5;
-    animation: fami-light 2s forwards;
 }
 
-@keyframes fami-light {
+@keyframes pulse-light {
     0% {
-        width: 10px;
-        height: 10px;
-        opacity: 0.2;
-    }
-    50% {
-        width: 150px;
-        height: 150px;
+        transform: translate(-50%, -50%) scale(1);
         opacity: 0.7;
     }
     100% {
-        width: 200px;
-        height: 200px;
+        transform: translate(-50%, -50%) scale(1.5);
         opacity: 0;
     }
 }
@@ -584,26 +630,6 @@ body {
 
 .cell.special-xo-tot {
     background-color: rgba(255, 225, 100, 0.2);
-}
-
-/* CSS cho hiệu ứng hộp Fami bay */
-.flying-fami {
-    position: fixed;
-    width: 40px;
-    height: 40px;
-    transform: translate(-50%, -50%);
-    z-index: 1000;
-    transition: left 1s ease-in-out, top 1s ease-in-out, transform 1s ease-in-out;
-}
-
-.flying-fami img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-}
-
-.flying-fami.flying {
-    transform: translate(-50%, -50%) scale(0.5);
 }
 
 /* CSS cho hiệu ứng di chuyển tile khi scramble */
