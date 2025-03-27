@@ -547,18 +547,29 @@ class SoyaFarming {
                 // Create temporary Fami for animation
                 this.board[firstCellRow][firstCellCol] = 'fami';
                 
-                // Kích hoạt hiệu ứng confetti mạnh hơn
+                // Kích hoạt hiệu ứng confetti mạnh hơn và rõ ràng hơn
                 createConfetti();
-                createConfetti();
-                createConfetti();
+                setTimeout(() => createConfetti(), 300);
+                setTimeout(() => createConfetti(), 600);
                 
+                // Thêm hiệu ứng đặc biệt cho các ô khác
                 this.renderBoard();
+                const famiCell = document.querySelector(`[data-row="${firstCellRow}"][data-col="${firstCellCol}"]`);
+                if (famiCell) {
+                    famiCell.classList.add('super-match');
+                    famiCell.style.zIndex = "10";
+                }
                 
                 // Animate Fami appearance and disappearance
                 setTimeout(() => {
-                    const famiCell = document.querySelector(`[data-row="${firstCellRow}"][data-col="${firstCellCol}"] .cell-content`);
-                    if (famiCell) {
-                        famiCell.classList.add('fami-disappearing');
+                    const famiCellContent = document.querySelector(`[data-row="${firstCellRow}"][data-col="${firstCellCol}"] .cell-content`);
+                    if (famiCellContent) {
+                        famiCellContent.classList.add('fami-disappearing');
+                        
+                        // Thêm hiệu ứng ánh sáng xung quanh
+                        const light = document.createElement('div');
+                        light.className = 'fami-light';
+                        famiCell.appendChild(light);
                     }
                     
                     setTimeout(() => {
@@ -574,7 +585,7 @@ class SoyaFarming {
 
                         // Kiểm tra nếu không còn nước đi hợp lệ
                         this.checkAndHandleNoValidMoves();
-                    }, 2000); // Kéo dài thời gian hiển thị Fami để người chơi thấy rõ hơn
+                    }, 2000); // Kéo dài thời gian hiển thị Fami 
                 }, 1000);
                 
                 this.showSuccessModal('fami');
@@ -715,9 +726,11 @@ class SoyaFarming {
         }
         
         this.successModal.style.display = 'flex';
+        
+        // Tăng thời gian hiển thị modal lên 2 giây để người chơi thấy rõ hơn
         setTimeout(() => {
             this.successModal.style.display = 'none';
-        }, 1500);
+        }, 2000);
     }
 
     updateExchangeButton() {

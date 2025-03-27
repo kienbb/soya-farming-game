@@ -122,36 +122,52 @@ body {
     transform: scale(1.15);
 }
 
-/* Special styling for upgraded elements */
-.cell[data-type="beo-tot"] .cell-content,
-.cell[data-type="dam-tot"] .cell-content,
-.cell[data-type="xo-tot"] .cell-content {
-    filter: drop-shadow(0 0 3px gold);
-    transform: scale(1.1);
+/* Màu nền cho các tile nâng cấp */
+.cell[data-type="beo-tot"] {
+    background-color: rgba(255, 215, 0, 0.15);
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    border-radius: 10px;
 }
 
+.cell[data-type="dam-tot"] {
+    background-color: rgba(76, 175, 80, 0.15);
+    border: 2px solid rgba(76, 175, 80, 0.5);
+    border-radius: 10px;
+}
+
+.cell[data-type="xo-tot"] {
+    background-color: rgba(33, 150, 243, 0.15);
+    border: 2px solid rgba(33, 150, 243, 0.5);
+    border-radius: 10px;
+}
+
+/* Hiệu ứng cho Fami */
 .cell[data-type="fami"] .cell-content {
-    filter: drop-shadow(0 0 5px #4CAF50);
-    transform: scale(1.15);
-    animation: fami-appear 1s ease-in-out;
+    filter: drop-shadow(0 0 8px gold);
+    transform: scale(1.25);
+    animation: fami-appear 1.5s ease-in-out;
 }
 
 @keyframes fami-appear {
     0% { 
         transform: scale(0);
         opacity: 0;
+        filter: drop-shadow(0 0 0 gold);
     }
     50% { 
-        transform: scale(1.5);
+        transform: scale(1.75);
         opacity: 1;
+        filter: drop-shadow(0 0 15px gold);
     }
     75% {
-        transform: scale(1.15);
+        transform: scale(1.25);
         opacity: 1;
+        filter: drop-shadow(0 0 10px gold);
     }
     100% { 
-        transform: scale(1.15);
+        transform: scale(1.25);
         opacity: 1;
+        filter: drop-shadow(0 0 8px gold);
     }
 }
 
@@ -161,12 +177,12 @@ body {
 
 @keyframes fami-disappear {
     0% {
-        transform: scale(1.15); 
+        transform: scale(1.25); 
         opacity: 1;
         filter: drop-shadow(0 0 10px gold);
     }
     50% {
-        transform: scale(1.5);
+        transform: scale(1.75);
         opacity: 0.8;
         filter: drop-shadow(0 0 20px gold);
     }
@@ -445,4 +461,109 @@ body {
     25% { transform: scale(0.9) rotate(-10deg); }
     75% { transform: scale(0.9) rotate(10deg); }
     100% { transform: scale(1) rotate(0deg); }
+}
+
+/* Hiệu ứng cho các yếu tố đặc biệt */
+.cell[data-type="beo-tot"] .cell-content,
+.cell[data-type="dam-tot"] .cell-content,
+.cell[data-type="xo-tot"] .cell-content {
+    filter: drop-shadow(0 0 4px rgba(255, 215, 0, 0.7));
+    transform: scale(1.1);
+    transition: transform 0.3s ease;
+}
+
+.cell[data-type="beo-tot"]:hover .cell-content,
+.cell[data-type="dam-tot"]:hover .cell-content,
+.cell[data-type="xo-tot"]:hover .cell-content {
+    transform: scale(1.2);
+}
+
+/* Thêm hiệu ứng pulse cho các ô đặc biệt */
+.cell[data-type="beo-tot"],
+.cell[data-type="dam-tot"],
+.cell[data-type="xo-tot"] {
+    position: relative;
+    overflow: hidden;
+}
+
+.cell[data-type="beo-tot"]::after,
+.cell[data-type="dam-tot"]::after,
+.cell[data-type="xo-tot"]::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+    opacity: 0;
+    animation: pulse 2s infinite;
+    pointer-events: none;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(0.95);
+        opacity: 0;
+    }
+    50% {
+        opacity: 0.4;
+    }
+    100% {
+        transform: scale(1.05);
+        opacity: 0;
+    }
+}
+
+/* Hiệu ứng cho super-match khi tạo Fami */
+.cell.super-match {
+    animation: super-match 1s ease-out;
+}
+
+@keyframes super-match {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 rgba(255, 215, 0, 0);
+    }
+    50% {
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.3);
+    }
+}
+
+/* Hiệu ứng ánh sáng xung quanh Fami */
+.fami-light {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0px;
+    height: 0px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 215, 0, 0.8) 0%, rgba(255, 215, 0, 0) 70%);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 5;
+    animation: fami-light 2s forwards;
+}
+
+@keyframes fami-light {
+    0% {
+        width: 10px;
+        height: 10px;
+        opacity: 0.2;
+    }
+    50% {
+        width: 150px;
+        height: 150px;
+        opacity: 0.7;
+    }
+    100% {
+        width: 200px;
+        height: 200px;
+        opacity: 0;
+    }
 }
